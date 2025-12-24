@@ -33,3 +33,11 @@
 - shutil.move(src, dst)：移动（跨盘更稳）
 
 - shutil.copy2(src, dst)：复制并保留metadata
+
+### 5.处理操作
+
+- `strip()`去除两边的空格，指定字符的`strip(".")`去除两边的`.`
+
+- `lstrip()`只去除左边的空格
+
+- `split(sep)`按分隔符将字符串切成多段，一般需要配合`strip`去除空格使用
