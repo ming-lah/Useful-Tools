@@ -41,3 +41,44 @@
 - `lstrip()`只去除左边的空格
 
 - `split(sep)`按分隔符将字符串切成多段，一般需要配合`strip`去除空格使用
+
+### 6.遍历操作
+
+- `items = src.rglob("*")`递归遍历会搜索文件夹目录下的内容
+- `items = src.iterdir()`只遍历第一层结果
+
+---
+
+## 运行命令汇总（tool.py）
+
+### 1) 查看帮助/参数
+
+- `python 01_files_automation\tool.py -h`
+
+### 2) 常用命令（PowerShell）
+
+- 按扩展名分类（默认 `--mode ext` + `--action copy`）：  
+  `python 01_files_automation\tool.py --src "D:\Downloads" --dst "D:\Sorted"`
+- 只预览不执行（推荐先跑一遍确认）：  
+  `python 01_files_automation\tool.py --src "D:\Downloads" --dst "D:\Sorted" --dry-run`
+- 按修改时间（年-月）分类：  
+  `python 01_files_automation\tool.py --src "D:\Downloads" --dst "D:\Sorted" --mode date`
+- 递归扫描子目录：  
+  `python 01_files_automation\tool.py --src "D:\Downloads" --dst "D:\Sorted" --recursive`
+- 移动而不是复制：  
+  `python 01_files_automation\tool.py --src "D:\Downloads" --dst "D:\Sorted" --action move`
+- 限制最小文件大小（KB）：  
+  `python 01_files_automation\tool.py --src "D:\Downloads" --dst "D:\Sorted" --min_size_kb 100`
+- 扩展名过滤（逗号分隔，`jpg,png` 或 `.jpg,.png` 都可以）：  
+  `python 01_files_automation\tool.py --src "D:\Downloads" --dst "D:\Sorted" --only-ext jpg,png`  
+  `python 01_files_automation\tool.py --src "D:\Downloads" --dst "D:\Sorted" --exclude-ext tmp,log`
+
+### 3) 组合示例
+
+- 递归 + 只复制图片 + 排除 `tmp` + 最小 100KB：  
+  `python 01_files_automation\tool.py --src "D:\Downloads" --dst "D:\Sorted" --recursive --only-ext jpg,png --exclude-ext tmp --min_size_kb 100`
+
+### 4) 注意事项
+
+- `--dst` 不能等于 `--src`，也不能在 `--src` 目录下面（脚本会直接抛错）。
+- 目标目录会按 `ext` 或 `YYYY-MM` 自动创建子文件夹；同名文件会自动追加 `_1/_2...`。
