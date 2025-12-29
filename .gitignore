@@ -36,6 +36,7 @@ dist/
 .tmp/
 tmp/
 test_data/
+_tmp/
 
 # === 忽略所有临时后缀的文件 ===
 *.tmp

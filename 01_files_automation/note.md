@@ -119,3 +119,5 @@
 
 - `--dst` 不能等于 `--src`，也不能在 `--src` 目录下面（脚本会直接抛错）。
 - 目标目录会按 `ext` 或 `YYYY-MM` 自动创建子文件夹；同名文件会自动追加 `_1/_2...`。
+
+python tool.py --src "C:\Users\31453\Downloads" --dst "D:\Sorted" --recursive --only-ext jpg,png --exclude-ext tmp --min-size-kb 0 --mode ext --action move --dry-run --plan-out "D:\Sorted\logs\plan_20251229.jsonl"
