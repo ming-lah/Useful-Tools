@@ -4,6 +4,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Optional , Tuple, Set
 import json
+import logging
+from logger_utils import setup_logging
 
 def next_available(p:Path) -> Path:
     if not p.exists():
@@ -62,7 +64,8 @@ def sort_files(
     action: str, 
     recursive: bool,
     onlyset: str,
-    excludeset: str
+    excludeset: str,
+    logger: logging.Logger
 ) -> None:
     moved = 0
     scanned = 0
@@ -72,48 +75,56 @@ def sort_files(
     onset = parse_ext_list(onlyset)
     exset = parse_ext_list(excludeset)
 
+    logger.info("scan start: src=%s recursive=%s",src,recursive)
     for f in files:
-        scanned += 1
-        st = f.stat()
-        size = st.st_size
-        size = size / 1024
+        try:
+            scanned += 1
+            st = f.stat()
+            size = st.st_size
+            size = size / 1024
 
-        # skip
-        if size < min_size:
-            skipped += 1
-            print(f"[Skipped] {f.name} size={size:.4f}KB")
-            continue
-        suf = f.suffix.lower().lstrip(".")
-        if suf == "":
-            suf = "no_ext"
-        if onset and suf not in onset:
-            skipped += 1
-            print(f"[Skipped] {f.name} not in onset")
-            continue
-        if exset and suf in exset:
-            skipped += 1
-            print(f"[Skipped] {f.name} in exset")
-            continue
+            # skip
+            if size < min_size:
+                skipped += 1
+                logger.info("[SKIP] %s size=%.4fKB < min=%sKB",f.name,size,min_size)
+                continue
+            suf = f.suffix.lower().lstrip(".")
+            if suf == "":
+                suf = "no_ext"
+            if onset and suf not in onset:
+                skipped += 1
+                logger.info("[SKIP] %s ext=%s not in only_ext=%s",f.name,suf,sorted(onset))
+                continue
+            if exset and suf in exset:
+                skipped += 1
+                logger.info("[SKIP] %s ext=%s in exclude_ext=%s",f.name,suf,sorted(exset))
+                continue
 
-        name = get_name(f, mode)
+            name = get_name(f, mode)
 
-        target_dir = dst / name
-        target_dir.mkdir(parents=True, exist_ok=True)
-        target_path = next_available(target_dir/f.name)
+            target_dir = dst / name
+            target_dir.mkdir(parents=True, exist_ok=True)
+            target_path = next_available(target_dir/f.name)
 
-        if dry:
-            print(f"[DRY] {f} -> {target_path}")
-        else:
-            if action == "copy":
-                shutil.copy2(str(f), str(target_path))
-                print(f"[COPY] {f} -> {target_path}")
+            if dry:
+                logger.info("[DRY] %s -> %s",f,target_path)
             else:
-                shutil.move(str(f), str(target_path))
-                print(f"[MOVE] {f} -> {target_path}")
-            moved += 1
+                if action == "copy":
+                    shutil.copy2(str(f), str(target_path))
+                    logger.info("[COPY] %s -> %s",f,target_path)
+                else:
+                    shutil.move(str(f), str(target_path))
+                    logger.info("[MOVE] %s -> %s",f,target_path)
+                moved += 1
+        except PermissionError:
+            logger.error("[FAIL] Permission denied: %s", f)
+            skipped += 1
+        except Exception as e:
+            logger.error("[FAIL] Error processing %s: %s", f, e)
+            skipped += 1
             
-    print(f"\nDone. mode={mode} dry={dry} min_size_kb={min_size}kb")
-    print(f"Done. scanned={scanned} moved={moved} skipped={skipped}")
+    logger.info("done: mode=%s dry=%s min_size_kb=%s",mode,dry,min_size)
+    logger.info("summary: scanned=%d moved=%d skipped=%d",scanned,moved,skipped)
 
 def log_event(fp, ev:dict) -> None:
     fp.write(json.dumps(ev, ensure_ascii=False) + "\n")
@@ -132,22 +143,46 @@ def main():
     ap.add_argument("--recursive",action="store_true")
     ap.add_argument("--only-ext", default="")
     ap.add_argument("--exclude-ext",default="")
+
+    ap.add_argument("--log-level", default='INFO', choices=["DEBUG","INFO","WARNING","ERROR","CRITICAL"])
+    ap.add_argument("--log-file", default="")
+
     args = ap.parse_args()
 
     src = Path(args.src).expanduser().resolve()
     dst = Path(args.dst).expanduser().resolve()
     if src == dst or src in dst.parents:
         raise ValueError("dst can't be src or dst can't under src")
-    
     dst.mkdir(parents=True, exist_ok=True)
+
+    if args.log_file:
+        log_file_path=Path(args.log_file).expanduser().resolve()
+        log_file_path.parent.mkdir(parents=True,exist_ok=True)
+    else:
+        log_dir=dst/"logs"
+        log_dir.mkdir(parents=True,exist_ok=True)
+        ts=datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file_path=log_dir/f"sort_{ts}.log"
+
+    logger = setup_logging(
+        log_file_path,
+        console_level=getattr(logging, args.log_level),
+        file_level=logging.DEBUG
+    )
+    logger.info("start")
+    logger.info("src=%s dst=%s mode=%s dry=%s action=%s recursive=%s min_size_kb=%s only_ext=%s exclude_ext=%s",
+                src,dst,args.mode,args.dry_run,args.action,args.recursive,args.min_size_kb,args.only_ext,args.exclude_ext)
+    logger.info("log_file=%s",log_file_path)
+
     recursive = args.recursive
     action  = args.action
     
     onset = args.only_ext
     excludeset = args.exclude_ext
 
-    sort_files(src, dst, args.mode, args.dry_run, args.min_size_kb, action, recursive, onset, excludeset)
+    sort_files(src, dst, args.mode, args.dry_run, args.min_size_kb, action, recursive, onset, excludeset, logger)
 
+    logger.info("finished")
 if __name__ == "__main__":
     main()
 

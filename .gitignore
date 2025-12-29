@@ -1,0 +1,33 @@
+# === 日志与临时文件 (核心需求) ===
+*.log
+logs/
+*.log.*
+
+# === Python 编译缓存 (必加) ===
+# Python 运行时会自动生成这些文件夹，绝对不需要提交
+__pycache__/
+*.py[cod]
+*$py.class
+
+# === 操作系统生成的文件 ===
+# Windows 缩略图缓存
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Mac 系统文件 (如果你队友用 Mac)
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# === IDE 配置 (可选，建议忽略) ===
+# VS Code 配置
+.vscode/
+# PyCharm 配置
+.idea/
+
+# === 你的测试输出目录 (建议) ===
+# 如果你在项目里建了 output 文件夹来测试，加上这个
+test_output/
+output/
+dist/
