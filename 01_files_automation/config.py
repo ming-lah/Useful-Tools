@@ -13,15 +13,15 @@ def parse_ext_list(s: str) -> Set[str]:
         if part:
             # set->add
             out.add(part)
-    return out 
+    return out
 
 @dataclass(frozen=True)
 class RunConfig:
     src: Path
     dst: Path
     recursive: bool
-    mode: str
-    action: str
+    mode: str       # 'ext' | 'date'
+    action: str     # 'move' | 'copy'
     dry_run: bool
 
     only_ext: Set[str]
@@ -30,6 +30,9 @@ class RunConfig:
 
     plan_out: Optional[Path]
     plan_fsync: bool
+
+    on_conflict: str
+    dedupe: bool
 
     log_file: Optional[Path]
     console_level: int
@@ -46,6 +49,8 @@ class RunConfig:
             "only_ext": sorted(self.only_ext),
             "exclude_ext": sorted(self.exclude_ext),
             "min_size_kb": self.min_size_kb,
+            "on_conflict": self.on_conflict,
+            "dedupe": self.dedupe,
             "plan_out": str(self.plan_out) if self.plan_out else None,
             "plan_fsync": self.plan_fsync,
             "log_file": str(self.log_file) if self.log_file else None,
