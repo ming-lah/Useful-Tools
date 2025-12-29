@@ -31,3 +31,11 @@ Desktop.ini
 test_output/
 output/
 dist/
+
+# === 忽略我的本地测试数据 ===
+.tmp/
+tmp/
+test_data/
+
+# === 忽略所有临时后缀的文件 ===
+*.tmp
