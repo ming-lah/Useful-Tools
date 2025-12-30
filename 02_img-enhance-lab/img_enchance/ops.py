@@ -53,3 +53,32 @@ def sobel(img: np.ndarray, ksize: int=3, normalize: bool=True) -> np.ndarray:
             mag = mag * (255.0 / mmax)
     mag = np.clip(mag, 0, 255).astype(np.uint8)
     return mag
+
+def clean_v2(
+    img: np.ndarray,
+    kernel: int = 40,
+    eps: float = 1e-5,
+    debug_bg_path: str | None = None,
+) -> np.ndarray:
+    """
+    Background estimation (morph close) + division normalization + Otsu binarization.
+    """
+    kernel = int(kernel)
+    if kernel < 1:
+        raise ValueError("kernel must be >= 1")
+    if eps <= 0:
+        raise ValueError("eps must be > 0")
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    k = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel, kernel))
+    bg_estimate = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, k)
+
+    if debug_bg_path:
+        from pathlib import Path
+        from .io_utils import write_img
+        write_img(Path(debug_bg_path), bg_estimate)
+
+    normalized = gray.astype(np.float32) / (bg_estimate.astype(np.float32) + float(eps))
+    normalized = np.clip(normalized * 255.0, 0, 255).astype(np.uint8)
+    _, binary = cv2.threshold(normalized, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return binary

@@ -1,69 +1,76 @@
-# Image Enhance Lab Notes
+# Image Enhance Lab 说明
 
-## What it does
-- Command-line image enhancement tool with single-file or batch processing.
-- Supported operations: linear (brightness/contrast), gamma correction, CLAHE, median denoise, unsharp mask, sobel edges.
-- Handles path names with non-ASCII characters for read/write.
-- Conflict handling: skip, overwrite, or auto-rename (append _1, _2, ...).
+## 功能概览
+- 一个支持单图/批量的图像处理 CLI。
+- 支持操作：`linear`(亮度/对比度)、`gamma`(伽马)、`clahe`、`median`、`unsharp`、`sobel`、`clean-v2`(背景估计+除法校正+Otsu 二值化)。
+- 读写支持包含中文/非 ASCII 路径。
+- 冲突策略：`skip` / `overwrite` / `rename`（自动追加 `_1/_2/...`）。
 
-## How to run
-From the project root:
+## 运行方式
+在仓库根目录执行：
 ```bash
+cd 02_img-enhance-lab
 python -m img_enchance <command> --src <path> --out <path> [options]
 ```
 
-When `--src` is a file, `--out` can be a file path or an existing folder.
-When `--src` is a folder, `--out` must be a folder path (no file suffix).
+`--src` 为文件时：`--out` 可以是文件路径，或一个已存在的输出目录。
+`--src` 为目录时：`--out` 必须是目录路径（不能带文件后缀）。
 
-## Common options
-- `--src` input image file or folder (required)
-- `--out` output file (single image) or folder (batch) (required)
-- `--recursive` scan folders recursively
-- `--dry-run` print actions only, write nothing
-- `--ext` force output extension, e.g. `.png` or `png`
-- `--on-conflict` `skip|overwrite|rename` (default: `rename`)
-- `--strict` stop on first error in batch mode
+## 通用参数
+- `--src` 输入图片文件/目录（必填）
+- `--out` 输出文件（单图）/输出目录（批量）（必填）
+- `--recursive` 递归扫描子目录
+- `--dry-run` 只打印计划动作，不写文件
+- `--ext` 强制输出扩展名，例如 `.png`/`png`
+- `--on-conflict` `skip|overwrite|rename`（默认：`rename`）
+- `--strict` 批处理遇到错误立即停止
 
-## Commands
+## 子命令与参数
 
 ### linear
-Brightness/contrast: `out = alpha * img + beta`
-Options:
-- `--alpha` contrast multiplier (default: `1.0`)
-- `--beta` brightness shift (default: `0.0`)
+亮度/对比度：`out = alpha * img + beta`
+- `--alpha` 对比度倍率（默认：`1.0`）
+- `--beta` 亮度偏移（默认：`0.0`）
 
 ### gamma
-Gamma correction:
-- `--gamma` gamma value > 0 (default: `1.0`)
+伽马校正：
+- `--gamma` `> 0`（默认：`1.0`）
 
 ### clahe
-CLAHE on LAB L channel:
-- `--clip-limit` contrast limit (default: `2.0`)
-- `--tile` tile grid size (default: `8`)
+对 LAB 的 L 通道做 CLAHE：
+- `--clip-limit`（默认：`2.0`）
+- `--tile`（默认：`8`）
 
 ### median
-Median filter (salt-and-pepper noise):
-- `--k` odd kernel size >= 3 (default: `3`)
+中值滤波（椒盐噪声常用）：
+- `--k` 奇数且 `>= 3`（默认：`3`）
 
 ### unsharp
-Unsharp mask:
-- `--sigma` Gaussian sigma > 0 (default: `1.2`)
-- `--amount` sharpen strength (default: `1.0`)
+USM 锐化：
+- `--sigma` 高斯 sigma，`> 0`（默认：`1.2`）
+- `--amount` 锐化强度（默认：`1.0`）
 
 ### sobel
-Sobel edge magnitude (grayscale output):
-- `--ksize` odd kernel size >= 1 (default: `3`)
-- `--no-normalize` keep raw magnitude without normalization
-If `--ext` is not provided, output defaults to `.png`.
+Sobel 边缘幅值（灰度输出）：
+- `--ksize` 奇数且 `>= 1`（默认：`3`）
+- `--no-normalize` 不做归一化
+不指定 `--ext` 时默认输出 `.png`。
 
-## Examples
+### clean-v2（接入你提供的方法 2）
+流程：灰度 -> 形态学闭运算估计背景 -> `gray / background * 255` -> Otsu 二值化。
+- `--kernel` 背景估计核大小（默认：`40`，一般 `30~50`，字越大核越大）
+- `--eps` 防止除 0（默认：`1e-5`）
+- `--debug-bg` 保存估计背景图到指定路径（建议单图模式使用，批量会被覆盖并自动忽略）
+不指定 `--ext` 时默认输出 `.png`（避免二值图写 jpg 出现压缩伪影）。
+
+## 示例
 ```bash
-# Single file, linear adjust
-python -m img_enchance linear --src input.jpg --out out.jpg --alpha 1.2 --beta 10
+# 单图：背景校正 + Otsu 二值化（并保存背景估计图）
+python -m img_enchance clean-v2 --src D:\Desktop\1.jpg --out D:\Desktop\13.png --debug-bg D:\Desktop\debug_background.jpg
 
-# Batch gamma correction, recursive, keep extension
-python -m img_enchance gamma --src images --out out_dir --recursive --gamma 0.8
+# 批量：对文件夹所有图片执行 clean-v2
+python -m img_enchance clean-v2 --src D:\imgs --out D:\out --recursive --kernel 45
 
-# Sobel edges to png
-python -m img_enchance sobel --src input.jpg --out out_dir --ext png
+# 单图：Sobel 输出 png
+python -m img_enchance sobel --src input.jpg --out out_dir
 ```

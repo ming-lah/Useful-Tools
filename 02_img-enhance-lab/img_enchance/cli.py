@@ -70,6 +70,11 @@ def process_batch(
     if out_root.suffix!="":
         raise ValueError("When src is a folder, --out must be a folder path (no file suffix).")
 
+    if op_kwargs.get("debug_bg_path"):
+        print("[WARN] --debug-bg is ignored in batch mode (would be overwritten).")
+        op_kwargs = dict(op_kwargs)
+        op_kwargs["debug_bg_path"] = None
+
     for p in iter_images(src_root,recursive):
         total+=1
         dst=map_dst_for_dir(p,src_root,out_root,ext)
@@ -146,6 +151,13 @@ def main()->None:
     p.add_argument("--no-normalize",action="store_true")
     p.set_defaults(_op="sobel")
 
+    p=sub.add_parser("clean-v2",help="background estimate + division normalize + Otsu binarize")
+    add_common_args(p)
+    p.add_argument("--kernel",type=int,default=40,help="morph kernel size, usually 30-50")
+    p.add_argument("--eps",type=float,default=1e-5,help="epsilon to avoid divide-by-zero")
+    p.add_argument("--debug-bg",default=None,help="save estimated background to this path (single-file mode recommended)")
+    p.set_defaults(_op="clean_v2")
+
     args=ap.parse_args()
     src=Path(args.src)
     out=Path(args.out)
@@ -176,6 +188,11 @@ def main()->None:
         op_fn=OPS.sobel
         op_kwargs={"ksize":args.ksize,"normalize":(not args.no_normalize)}
         # sobel 建议默认输出 png（无损 + 灰度）
+        if ext is None:
+            ext=".png"
+    elif op_name=="clean_v2":
+        op_fn=OPS.clean_v2
+        op_kwargs={"kernel":args.kernel,"eps":args.eps,"debug_bg_path":args.debug_bg}
         if ext is None:
             ext=".png"
     else:
