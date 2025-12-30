@@ -37,8 +37,10 @@ dist/
 tmp/
 test_data/
 _tmp/
+_tmp_*/
 
 # === 忽略所有临时后缀的文件 ===
 *.tmp
 
+txt/
 .txt
